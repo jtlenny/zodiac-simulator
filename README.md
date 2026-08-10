@@ -2,7 +2,7 @@
 
 An interactive tool that shows *why* your zodiac sign changes through the year — and why astrology and astronomy don't always agree.
 
-*[Try it live →](https://github.com/jtlenny/zodiac-simulator)*
+*[Try it live](https://jtlenny.github.io/zodiac-simulator/)*
 
 ## What it does
 
