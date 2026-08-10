@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Astronomy vs. Astrology Orbit Simulator</title>
+  <style>
+    :root {
+      --accent-yellow: #ffea6c;
+      --accent-blue: #4da6ff;
+      --bg-color: #0b0e14;
+      --card-bg: #161b22;
+      --text-color: #f0f6fc;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      max-width: 1200px;
+    }
+
+    .controls {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      width: 460px;
+    }
+
+    button#modeToggle {
+      padding: 10px 15px;
+      background: #21262d;
+      color: var(--text-color);
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button#modeToggle.active {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 5px rgba(77, 166, 255, 0.4);
+    }
+
+    .info-panel {
+      background: #0d1117;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #30363d;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .main-sign-box {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 8px;
+    }
+
+    .main-sign-box .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #8b949e;
+    }
+
+    .main-sign-box .value {
+      font-size: 22px;
+      font-weight: bold;
+      color: var(--accent-yellow);
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .side-note {
+      font-size: 12px;
+      color: #8b949e;
+      line-height: 1.4;
+    }
+
+    .side-note strong {
+      color: var(--text-color);
+    }
+
+    .canvas-container {
+      position: relative;
+    }
+
+    canvas {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      cursor: grab;
+    }
+
+    canvas:active {
+      cursor: grabbing;
+    }
+
+    .sky-row {
+      display: flex;
+      gap: 14px;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .sky-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #05070a;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 8px;
+      flex: 1;
+    }
+
+    .sky-box h4 {
+      margin: 0 0 4px 0;
+      font-size: 10px;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: center;
+    }
+
+    .sky-caption {
+      margin: 0 0 6px 0;
+      font-size: 10px;
+      color: #6e7681;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .slider-label {
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Zodiac Orbit Simulator</h1>
+
+  <div class="container">
+    <!-- Control Panel -->
+    <div class="controls">
+      <button id="modeToggle">✨ Astronomy (Real Constellations)</button>
+
+      <div class="slider-group">
+        <div class="slider-label">
+          <label for="orbitSlider">Time of Year (Jan - Dec):</label>
+          <span id="monthVal" style="font-weight: bold; color: var(--accent-blue);">Jan 1</span>
+        </div>
+        <input type="range" id="orbitSlider" min="0" max="359" value="0">
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-label">
+          <label for="precessionSlider">Time Offset (Precession):</label>
+          <span id="yearVal">2026 AD (0 yrs)</span>
+        </div>
+        <input type="range" id="precessionSlider" min="-2000" max="2000" value="0" step="50">
+      </div>
+
+      <!-- Priority Hierarchy Display -->
+      <div class="info-panel">
+        <div class="main-sign-box">
+          <div class="label">Current Zodiac Sign (Sun Alignment)</div>
+          <div class="value">
+            <span id="sunSymbol">♑</span>
+            <span id="sunSignText">Capricorn</span>
+          </div>
+        </div>
+
+        <div class="side-note">
+          <strong>Visible Night Sign:</strong> <span id="midnightSignText">Cancer</span><br>
+          <span style="font-size: 11px; color: #6e7681;">(Constellation opposite the Sun, seen at midnight)</span>
+        </div>
+
+        <div class="side-note" style="margin-top: 4px;">
+          <strong>Season:</strong> <span id="seasonText">❄️ Early Winter</span>
+        </div>
+
+        <div class="side-note" style="margin-top: 6px; display: flex; gap: 14px;">
+          <span><span style="display:inline-block; width:9px; height:9px; border-radius:2px; background: rgba(255,215,0,0.6); margin-right:5px;"></span>Sun direction</span>
+          <span><span style="display:inline-block; width:9px; height:9px; border-radius:2px; background: rgba(77,166,255,0.6); margin-right:5px;"></span>Midnight direction</span>
+        </div>
+      </div>
+
+      <!-- Side-by-Side Canvas Displays: Constellation on the LEFT, Midnight sky on the RIGHT -->
+      <div class="sky-row">
+        <div class="sky-box">
+          <h4>Zodiac View</h4>
+          <p class="sky-caption">Where the Sun sits today</p>
+          <canvas id="diagramCanvas" width="180" height="180"></canvas>
+        </div>
+
+        <div class="sky-box">
+          <h4>Midnight View</h4>
+          <p class="sky-caption">Overhead at midnight tonight</p>
+          <canvas id="skyCanvas" width="180" height="180"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive Orbit Wheel -->
+    <div class="canvas-container">
+      <canvas id="orbitCanvas" width="600" height="600"></canvas>
+    </div>
+  </div>
+
+  <script>
+    let isAstrologyMode = false;
+    let earthAngle = 0; // 0 = Jan 1st, 359 = Dec 31st (raw calendar-day slider angle)
+    let yearOffset = 0;
+    let isDragging = false;
+
+    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    const ZODIAC_SYMBOLS = {
+      "Capricorn": "♑", "Aquarius": "♒", "Pisces": "♓", "Aries": "♈",
+      "Taurus": "♉", "Gemini": "♊", "Cancer": "♋", "Leo": "♌",
+      "Virgo": "♍", "Libra": "♎", "Scorpio": "♏", "Ophiuchus": "⛎", "Sagittarius": "♐"
+    };
+
+    const canvas = document.getElementById('orbitCanvas');
+    const ctx = canvas.getContext('2d');
+    const skyCanvas = document.getElementById('skyCanvas');
+    const sCtx = skyCanvas.getContext('2d');
+    const diagramCanvas = document.getElementById('diagramCanvas');
+    const dCtx = diagramCanvas.getContext('2d');
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const orbitRadius = 160;
+
+    const modeToggle = document.getElementById('modeToggle');
+    const orbitSlider = document.getElementById('orbitSlider');
+    const precessionSlider = document.getElementById('precessionSlider');
+    
+    const monthVal = document.getElementById('monthVal');
+    const yearVal = document.getElementById('yearVal');
+    const sunSignText = document.getElementById('sunSignText');
+    const sunSymbol = document.getElementById('sunSymbol');
+    const midnightSignText = document.getElementById('midnightSignText');
+    const seasonText = document.getElementById('seasonText');
+
+    // Tropical Astrology: Exact Calendar Boundaries, expressed as ecliptic longitude (0-360)
+    // Aries begins at the vernal equinox point (0 deg). Jan 1st sun longitude is ~280 deg (Capricorn).
+    const astrologySigns = [
+      { name: "Capricorn", start: 271, end: 300 },   // Dec 22 - Jan 19
+      { name: "Aquarius", start: 300, end: 329 },    // Jan 20 - Feb 18
+      { name: "Pisces", start: 329, end: 359 },      // Feb 19 - Mar 20
+      { name: "Aries", start: 0, end: 29 },          // Mar 21 - Apr 19
+      { name: "Taurus", start: 29, end: 60 },        // Apr 20 - May 20
+      { name: "Gemini", start: 60, end: 91 },        // May 21 - Jun 20
+      { name: "Cancer", start: 91, end: 123 },       // Jun 21 - Jul 22
+      { name: "Leo", start: 123, end: 154 },         // Jul 23 - Aug 22
+      { name: "Virgo", start: 154, end: 185 },       // Aug 23 - Sep 22
+      { name: "Libra", start: 185, end: 215 },       // Sep 23 - Oct 22
+      { name: "Scorpio", start: 215, end: 245 },     // Oct 23 - Nov 21
+      { name: "Sagittarius", start: 245, end: 271 }  // Nov 22 - Dec 21
+    ];
+
+    // Astronomical Constellation RA Boundaries (hours). Converted to degrees (*15) for lookup,
+    // in the SAME longitude space as astrologySigns above (no extra offset needed - RA in hours*15
+    // is directly comparable to ecliptic longitude in this simplified circular model).
+    const astronomySignsBase = [
+      { name: "Capricorn", raStart: 20.3, raEnd: 21.8 },
+      { name: "Aquarius", raStart: 21.8, raEnd: 22.8 },
+      { name: "Pisces", raStart: 22.8, raEnd: 2.0 },
+      { name: "Aries", raStart: 2.0, raEnd: 3.8 },
+      { name: "Taurus", raStart: 3.8, raEnd: 6.0 },
+      { name: "Gemini", raStart: 6.0, raEnd: 8.0 },
+      { name: "Cancer", raStart: 8.0, raEnd: 9.3 },
+      { name: "Leo", raStart: 9.3, raEnd: 11.8 },
+      { name: "Virgo", raStart: 11.8, raEnd: 15.0 },
+      { name: "Libra", raStart: 15.0, raEnd: 16.0 },
+      { name: "Scorpio", raStart: 16.0, raEnd: 16.8 },
+      { name: "Ophiuchus", raStart: 16.8, raEnd: 18.0 },
+      { name: "Sagittarius", raStart: 18.0, raEnd: 20.3 }
+    ];
+
+    // Star Coordinates for Vector Mapping [Name, RA (hrs), Dec (deg), Mag]
+    // NOTE: The line connections (CONSTELLATION_LINES below) are placeholders and are known
+    // to be inaccurate for several signs - see the note at the bottom of this file.
+    const BRIGHT_STARS = [
+      // Pisces (Classic V-shape with Circlet) [0-7]
+      ["Alrescha", 2.03, 2.75, 3.8], ["Alpherg", 1.52, 15.34, 3.6], ["γ Psc", 23.28, 3.28, 3.7], ["β Psc", 23.06, 3.82, 4.5], ["δ Psc", 0.81, 7.58, 4.4], ["ε Psc", 1.05, 7.89, 4.2], ["ζ Psc", 1.23, 7.58, 5.2], ["η Psc", 1.52, 15.34, 3.6],
+      // Aries [8-10]
+      ["Hamal", 2.12, 23.46, 2.0], ["Sheratan", 1.91, 20.81, 2.6], ["Mesarthim", 1.89, 19.29, 3.8],
+      // Taurus [11-15]
+      ["Aldebaran", 4.60, 16.51, 0.85], ["Elnath", 5.43, 28.61, 1.65], ["Alcyone", 3.79, 24.11, 2.85], ["Tianguan", 5.62, 21.14, 3.0], ["Ain", 4.47, 19.18, 3.5],
+      // Gemini [16-22]
+      ["Pollux", 7.76, 28.02, 1.14], ["Castor", 7.58, 31.89, 1.93], ["Alhena", 6.63, 16.39, 1.93], ["Wasat", 7.34, 21.97, 3.5], ["Mebsuta", 6.73, 25.13, 3.0], ["Mekbuda", 7.07, 20.57, 3.8], ["Propus", 6.25, 22.50, 3.3],
+      // Cancer [23-26]
+      ["Tarf", 8.28, 9.19, 3.5], ["Acubens", 8.97, 11.85, 4.2], ["Asellus Aus.", 8.74, 18.15, 3.9], ["Asellus Bor.", 8.72, 21.46, 4.7],
+      // Leo [27-32]
+      ["Regulus", 10.14, 11.96, 1.36], ["Denebola", 11.82, 14.57, 2.14], ["Algieba", 10.33, 19.84, 2.01], ["Zosma", 11.23, 20.52, 2.56], ["Rasalas", 9.87, 26.0, 3.8], ["Adhafera", 10.28, 23.42, 3.4],
+      // Virgo [33-37]
+      ["Spica", 13.42, -11.16, 0.98], ["Zavijava", 11.84, 1.76, 3.6], ["Porrima", 12.69, -1.45, 2.74], ["Vindemiatrix", 13.04, 10.96, 2.85], ["Heze", 13.58, -0.6, 3.4],
+      // Libra [38-40]
+      ["Zubeneschamali", 15.28, -9.38, 2.61], ["Zubenelgenubi", 14.85, -16.04, 2.75], ["Zubenelhakrabi", 15.63, -14.8, 3.9],
+      // Scorpio [41-46]
+      ["Antares", 16.49, -26.43, 1.06], ["Graffias", 16.09, -19.8, 2.56], ["Dschubba", 16.0, -22.62, 2.29], ["Sargas", 17.62, -42.99, 1.86], ["Shaula", 17.56, -37.1, 1.62], ["Larawag", 16.86, -34.29, 2.4],
+      // Ophiuchus [47-51]
+      ["Rasalhague", 17.58, 12.56, 2.08], ["Sabik", 17.17, -15.72, 2.43], ["Yed Prior", 16.62, -10.37, 2.73], ["Yed Post.", 16.72, -10.45, 3.2], ["Cebalrai", 17.72, 4.57, 2.76],
+      // Sagittarius [52-59]
+      ["Kaus Aus.", 18.40, -34.38, 1.79], ["Nunki", 18.92, -26.3, 2.05], ["Ascella", 19.04, -29.88, 2.60], ["Kaus Media", 18.35, -29.82, 2.72], ["Kaus Bor.", 18.46, -25.42, 2.82], ["Alnasl", 18.09, -30.42, 2.98], ["Kalia", 18.23, -25.42, 3.3], ["Phi Sgr", 18.76, -26.98, 3.1],
+      // Capricorn [60-63]
+      ["Deneb Algedi", 21.78, -16.13, 2.85], ["Dabih", 20.35, -14.78, 3.05], ["Algedi", 20.29, -12.54, 3.58], ["Nashira", 21.67, -16.66, 3.69],
+      // Aquarius [64-67]
+      ["Sadalsuud", 21.52, -5.57, 2.9], ["Sadalmelik", 22.09, -0.32, 2.95], ["Skat", 22.88, -15.82, 3.27], ["Ancha", 22.28, -7.78, 4.17]
+    ];
+
+    // Constellation Line Definitions - traditional asterism connections
+    const CONSTELLATION_LINES = {
+      // Two cords tied at Alrescha (the knot): one loops to the western "Circlet" fish,
+      // the other runs toward the eastern fish near Aries.
+      "Pisces": [[0, 2], [2, 3], [0, 4], [4, 5], [5, 6], [6, 1]],
+      // Simple three-star chain: Mesarthim - Sheratan - Hamal
+      "Aries": [[10, 9], [9, 8]],
+      // Hyades "V" face (Aldebaran the eye) with two long horns to Elnath and Tianguan,
+      // plus a line out to the Pleiades (Alcyone)
+      "Taurus": [[13, 11], [11, 15], [15, 12], [15, 14]],
+      // Two parallel bodies topped by the twins' heads (Castor & Pollux)
+      "Gemini": [[16, 19], [19, 21], [21, 18], [17, 20], [20, 22]],
+      // Faint inverted-Y: Asellus Australis as the hub
+      "Cancer": [[24, 25], [25, 26], [23, 25]],
+      // The "Sickle" (head/mane) plus the body triangle back to the tail (Denebola)
+      "Leo": [[27, 32], [32, 29], [29, 31], [27, 30], [30, 28]],
+      // Y-shape: Spica at the base, branching up through Porrima to both arms
+      "Virgo": [[33, 35], [35, 34], [35, 37], [37, 36]],
+      // The Scales - simple triangle between the three named stars
+      "Libra": [[39, 38], [38, 40], [40, 39]],
+      // Claws/head curving down through the body to the stinger tail
+      "Scorpio": [[42, 43], [43, 41], [41, 46], [46, 44], [44, 45]],
+      // Pentagon-ish figure: head down through both shoulders to a leg
+      "Ophiuchus": [[47, 51], [47, 49], [49, 50], [50, 48]],
+      // The "Teapot": spout, body and handle
+      "Sagittarius": [[57, 55], [55, 52], [52, 54], [54, 53], [53, 56], [56, 58], [58, 59], [56, 55]],
+      // Wide kite/boat outline between the two horn stars and two tail stars
+      "Capricorn": [[62, 61], [61, 63], [63, 60], [60, 62]],
+      // Water jar with streams down to two leg stars
+      "Aquarius": [[65, 64], [64, 67], [67, 66]]
+    };
+
+    // UI Listeners
+    modeToggle.addEventListener('click', () => {
+      isAstrologyMode = !isAstrologyMode;
+      modeToggle.classList.toggle('active', isAstrologyMode);
+      modeToggle.innerText = isAstrologyMode ? "🔮 Astrology (Equal Slices)" : "✨ Astronomy (Real Constellations)";
+      update();
+    });
+
+    orbitSlider.addEventListener('input', (e) => {
+      earthAngle = parseInt(e.target.value);
+      updateMonthLabel();
+      update();
+    });
+
+    precessionSlider.addEventListener('input', (e) => {
+      yearOffset = parseInt(e.target.value);
+      const yr = 2026 + yearOffset;
+      const label = yr >= 0 ? `${yr} AD` : `${Math.abs(yr)} BC`;
+      yearVal.innerText = `${label} (${yearOffset >= 0 ? '+' : ''}${yearOffset} yrs)`;
+      update();
+    });
+
+    function getMouseAngle(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left - centerX;
+      const y = e.clientY - rect.top - centerY;
+      let angle = Math.atan2(y, x) * 180 / Math.PI;
+      return (angle + 360) % 360;
+    }
+
+    function handleMouseMove(e) {
+      if (!isDragging) return;
+      // Convert the clicked canvas angle (which is the Earth's on-screen position)
+      // back into the raw calendar slider value.
+      const clickedCanvasAngle = getMouseAngle(e);
+      let rawAngle = (clickedCanvasAngle - 100 + 360) % 360;
+      earthAngle = Math.floor(rawAngle);
+      orbitSlider.value = earthAngle;
+      updateMonthLabel();
+      update();
+    }
+
+    canvas.addEventListener('mousedown', (e) => { isDragging = true; handleMouseMove(e); });
+    window.addEventListener('mouseup', () => isDragging = false);
+    canvas.addEventListener('mousemove', handleMouseMove);
+
+    // Map 0-359 slider angle precisely across the calendar year
+    function updateMonthLabel() {
+      const totalDays = Math.floor((earthAngle / 360) * 365);
+      const date = new Date(2026, 0, 1); // Start Jan 1
+      date.setDate(date.getDate() + totalDays);
+
+      const m = MONTHS[date.getMonth()];
+      const d = date.getDate();
+      monthVal.innerText = `${m} ${d}`;
+    }
+
+    function getPrecessionShiftDeg() {
+      return (yearOffset / 71.6);
+    }
+
+    function DynamicAstronomySigns() {
+      const shiftDeg = getPrecessionShiftDeg();
+
+      return astronomySignsBase.map(sign => {
+        // RA (hours) -> degrees, shifted by precession. Same longitude space as astrologySigns.
+        let startDeg = (sign.raStart * 15 + shiftDeg + 3600) % 360;
+        let endDeg = (sign.raEnd * 15 + shiftDeg + 3600) % 360;
+
+        return {
+          name: sign.name,
+          start: startDeg,
+          end: endDeg
+        };
+      });
+    }
+
+    function getSignAtAngle(angle, database) {
+      for (let s of database) {
+        if (s.start < s.end) {
+          if (angle >= s.start && angle < s.end) return s;
+        } else {
+          if (angle >= s.start || angle < s.end) return s;
+        }
+      }
+      return database[0];
+    }
+
+    function varColor(name) {
+      const val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      return val || (name === '--accent-yellow' ? '#ffea6c' : '#4da6ff');
+    }
+
+    function update() {
+      // sunLongitude: the Sun's ecliptic longitude for this day of year.
+      // Jan 1st (earthAngle = 0) sits at ~280 deg, deep in Capricorn - matches real-world sky.
+      const sunLongitude = (earthAngle + 280) % 360;
+      // The midnight sign is the point directly opposite the Sun (180 deg away) -
+      // this is also, geometrically, where Earth itself sits on the orbit wheel.
+      const midnightLongitude = (sunLongitude + 180) % 360;
+
+      const astronomySigns = DynamicAstronomySigns();
+      const currentDb = isAstrologyMode ? astrologySigns : astronomySigns;
+
+      const sunSign = getSignAtAngle(sunLongitude, currentDb).name;
+      const midnightSign = getSignAtAngle(midnightLongitude, currentDb).name;
+
+      sunSignText.innerText = sunSign;
+      sunSymbol.innerText = ZODIAC_SYMBOLS[sunSign] || "✨";
+      midnightSignText.innerText = midnightSign;
+
+      // Seasonal Calculation relative to Jan 1st (calendar-based, independent of zodiac math)
+      let season = "";
+      if (earthAngle >= 345 || earthAngle < 15) season = "❄️ Early Winter";
+      else if (earthAngle >= 15 && earthAngle < 75) season = "❄️ Mid-Winter";
+      else if (earthAngle >= 75 && earthAngle < 105) season = "🌱 Spring Equinox";
+      else if (earthAngle >= 105 && earthAngle < 165) season = "🌸 Mid-Spring";
+      else if (earthAngle >= 165 && earthAngle < 195) season = "☀️ Summer Solstice";
+      else if (earthAngle >= 195 && earthAngle < 255) season = "🌻 Mid-Summer";
+      else if (earthAngle >= 255 && earthAngle < 285) season = "🍂 Autumn Equinox";
+      else season = "🍁 Mid-Autumn";
+
+      seasonText.innerText = season;
+
+      drawOrbitCanvas(currentDb, sunLongitude, midnightLongitude, sunSign);
+      // Midnight View: real star field centred on the midnight direction.
+      drawSkyPanel(sCtx, skyCanvas, midnightLongitude, midnightSign);
+      // Constellation box: the SAME real star field, rotated 180 deg to centre
+      // on the current (sun) sign instead of the midnight sign.
+      drawSkyPanel(dCtx, diagramCanvas, sunLongitude, sunSign);
+    }
+
+    // Render 2D Orbital Map Wheel
+    function drawOrbitCanvas(db, sunAngle, midnightAngle, activeSunSign) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      db.forEach(sign => {
+        let startRad = (sign.start * Math.PI) / 180;
+        let endRad = (sign.end * Math.PI) / 180;
+        
+        if (sign.start > sign.end) {
+          endRad += Math.PI * 2;
+        }
+
+        const midRad = startRad + (endRad - startRad) / 2;
+        const isActive = sign.name === activeSunSign;
+
+        // Highlight active Sun sign slice
+        if (isActive) {
+          ctx.fillStyle = "rgba(255, 234, 108, 0.12)";
+          ctx.beginPath();
+          ctx.moveTo(centerX, centerY);
+          ctx.arc(centerX, centerY, 275, startRad, endRad);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        ctx.strokeStyle = isActive ? "rgba(255, 234, 108, 0.6)" : "rgba(255,255,255,0.06)";
+        ctx.lineWidth = isActive ? 1.5 : 1;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(centerX + 280 * Math.cos(startRad), centerY + 280 * Math.sin(startRad));
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(centerX + 250 * Math.cos(midRad), centerY + 250 * Math.sin(midRad));
+        ctx.rotate(midRad + Math.PI/2);
+        ctx.fillStyle = isActive ? varColor('--accent-yellow') : "rgba(255,255,255,0.5)";
+        ctx.font = isActive ? "bold 11px sans-serif" : "10px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(sign.name, 0, 0);
+        ctx.restore();
+      });
+
+      // Earth Orbit Circle
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, orbitRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Earth sits opposite the Sun's wheel position (midnightAngle) - this keeps the
+      // Earth dot, the highlighted wedge, and the cones all geometrically aligned.
+      const earthRad = (midnightAngle * Math.PI) / 180;
+      const earthX = centerX + orbitRadius * Math.cos(earthRad);
+      const earthY = centerY + orbitRadius * Math.sin(earthRad);
+
+      // Cones for Sun Alignment (Yellow) and Midnight View (Blue)
+      ctx.fillStyle = "rgba(255, 215, 0, 0.06)";
+      ctx.beginPath();
+      ctx.moveTo(earthX, earthY);
+      ctx.arc(earthX, earthY, 500, (sunAngle - 12) * Math.PI / 180, (sunAngle + 12) * Math.PI / 180);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(77, 166, 255, 0.08)";
+      ctx.beginPath();
+      ctx.moveTo(earthX, earthY);
+      ctx.arc(earthX, earthY, 500, (midnightAngle - 15) * Math.PI / 180, (midnightAngle + 15) * Math.PI / 180);
+      ctx.closePath();
+      ctx.fill();
+
+      // Sun Body
+      let sunGlow = ctx.createRadialGradient(centerX, centerY, 2, centerX, centerY, 20);
+      sunGlow.addColorStop(0, '#fffdf0');
+      sunGlow.addColorStop(0.2, '#ffea6c');
+      sunGlow.addColorStop(1, 'rgba(255,215,0,0)');
+      ctx.fillStyle = sunGlow;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 20, 0, Math.PI*2);
+      ctx.fill();
+
+      ctx.fillStyle = varColor('--accent-yellow');
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Earth Body
+      ctx.fillStyle = varColor('--accent-blue');
+      ctx.beginPath();
+      ctx.arc(earthX, earthY, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(earthX, earthY);
+      ctx.lineTo(earthX + 15 * Math.cos(earthRad), earthY + 15 * Math.sin(earthRad));
+      ctx.stroke();
+    }
+
+    // Shared real star-field renderer, used for BOTH the Midnight View and the
+    // Constellation box. Each panel just passes a different center angle:
+    // Midnight View centers on midnightLongitude, Constellation centers on
+    // sunLongitude (which is always exactly 180 deg around from it).
+    function drawSkyPanel(context, canvasEl, centerAngle, activeSignName) {
+      context.clearRect(0, 0, canvasEl.width, canvasEl.height);
+
+      const shiftDeg = getPrecessionShiftDeg();
+      const centerRA = ((centerAngle - shiftDeg + 3600) % 360) / 15;
+      const fovRA = 4.5;
+
+      function project(ra, dec) {
+        let deltaRA = ra - centerRA;
+        if (deltaRA > 12) deltaRA -= 24;
+        if (deltaRA < -12) deltaRA += 24;
+
+        const x = (canvasEl.width / 2) + (deltaRA / (fovRA / 2)) * (canvasEl.width / 2);
+        const y = (canvasEl.height / 2) - (dec / 40) * (canvasEl.height / 2);
+
+        return { x, y, visible: Math.abs(deltaRA) < (fovRA / 2) + 0.5 && y > 2 && y < canvasEl.height - 2 };
+      }
+
+      BRIGHT_STARS.forEach(star => {
+        const pt = project(star[1], star[2]);
+        if (pt.visible) {
+          const r = Math.max(1, 3.0 - star[3] * 0.4);
+          context.fillStyle = star[3] < 1.2 ? "#ffffff" : "rgba(255, 255, 255, 0.7)";
+          context.beginPath();
+          context.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+          context.fill();
+        }
+      });
+
+      const lines = CONSTELLATION_LINES[activeSignName];
+      if (lines) {
+        context.strokeStyle = "rgba(77, 166, 255, 0.8)";
+        context.lineWidth = 1.2;
+        context.beginPath();
+
+        lines.forEach(pair => {
+          const star1 = BRIGHT_STARS[pair[0]];
+          const star2 = BRIGHT_STARS[pair[1]];
+
+          const p1 = project(star1[1], star1[2]);
+          const p2 = project(star2[1], star2[2]);
+
+          context.moveTo(p1.x, p1.y);
+          context.lineTo(p2.x, p2.y);
+        });
+        context.stroke();
+      }
+
+      context.strokeStyle = "rgba(255,255,255,0.15)";
+      context.lineWidth = 1;
+      context.setLineDash([2, 2]);
+      context.beginPath();
+      context.moveTo(0, canvasEl.height / 2);
+      context.lineTo(canvasEl.width, canvasEl.height / 2);
+      context.stroke();
+      context.setLineDash([]);
+    }
+
+    // Boot
+    updateMonthLabel();
+    update();
+  </script>
+</body>
+</html>
